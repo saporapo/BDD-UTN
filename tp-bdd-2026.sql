@@ -112,7 +112,7 @@ CREATE TABLE ESTRESHADAS.detalle_compra (
     id_compra BIGINT NOT NULL REFERENCES ESTRESHADAS.compra(id_compra),
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
     cant_det_compra int NULL,
-    prec_unit_det_compra numeric(38,2) NULL
+    precio_unitario numeric(38,2) NULL
 )
 
 create table ESTRESHADAS.detalle_venta (
@@ -120,13 +120,13 @@ create table ESTRESHADAS.detalle_venta (
     id_venta BIGINT NOT NULL REFERENCES ESTRESHADAS.venta(id_venta),
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
     cant_det_venta int NULL,
-    prec_unit_det_venta numeric(38,2) NULL,
+    precio_unitario numeric(38,2) NULL,
     subtot_det_venta numeric(38,2) NULL
 )
 
 CREATE TABLE ESTRESHADAS.estado_bicicleta (
     id_est_bicicleta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    desc_est_bicicleta VARCHAR(255) NULL
+    desc_est_bici VARCHAR(255) NULL
 )
 
 CREATE TABLE ESTRESHADAS.estado_alquiler (
@@ -136,7 +136,7 @@ CREATE TABLE ESTRESHADAS.estado_alquiler (
 
 CREATE TABLE ESTRESHADAS.categoria_bicicleta (
     id_cat_bicicleta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    dscr_cat_bicicleta VARCHAR(255) NULL,
+    dscr_cat_bici VARCHAR(255) NULL,
 )
 
 CREATE TABLE ESTRESHADAS.modelo (
@@ -148,14 +148,38 @@ CREATE TABLE ESTRESHADAS.modelo (
     color_modelo VARCHAR(255) NULL
 )
 
+CREATE TABLE ESTRESHADAS.categoria_accesorio (
+    id_cat_accesorio BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    dscr_cat_accesorio VARCHAR(255) NULL,
+)
+
+CREATE TABLE ESTRESHADAS.accesorio (
+    id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
+    id_cat_accesorio BIGINT NOT NULL REFERENCES ESTRESHADAS.categoria_accesorio(id_cat_accesorio),
+    talle_accesorio VARCHAR(255) NULL,
+    color_accesorio VARCHAR(255) NULL,
+    
+    -- Clave Primaria Compuesta para que identifique univocamente un producto de tipo accesorio
+    PRIMARY KEY (id_producto, id_cat_accesorio)
+);
+
+CREATE TABLE ESTRESHADAS.bicicleta_venta (
+    id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
+    id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
+    meses_garantia int NULL,
+    
+    -- Clave Primaria Compuesta para que identifique univocamente un producto de tipo bici_venta
+    PRIMARY KEY (id_producto, id_modelo)
+);
+
 CREATE TABLE ESTRESHADAS.bicicleta_alquiler (
     id_bici_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_marca BIGINT NOT NULL REFERENCES ESTRESHADAS.marca(id_marca),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
 	id_local BIGINT NOT NULL REFERENCES ESTRESHADAS.local(id_local),
 	id_est_bicicleta BIGINT NOT NULL REFERENCES ESTRESHADAS.estado_bicicleta(id_est_bicicleta),
-    prec_hora_bicicleta numeric(38,2) NULL,
-    prec_dia_bicicleta numeric(38,2) NULL
+    precio_hora numeric(38,2) NULL,
+    precio_dia numeric(38,2) NULL
 )
 
 CREATE TABLE ESTRESHADAS.alquiler (
@@ -164,53 +188,53 @@ CREATE TABLE ESTRESHADAS.alquiler (
     id_cliente BIGINT NOT NULL REFERENCES ESTRESHADAS.cliente(id_cliente),
     id_bici_alquiler BIGINT NOT NULL REFERENCES ESTRESHADAS.bicicleta_alquiler(id_bici_alquiler),
 	id_est_alquiler BIGINT NOT NULL REFERENCES ESTRESHADAS.estado_alquiler(id_est_alquiler),
-    fec_init_alquiler DATETIME2(0) NULL,
-    fec_dev_alquiler DATETIME2(0) NULL,
-    fec_real_dev_alquiler DATETIME2(0) NULL,
+    fec_init DATETIME2(0) NULL,
+    fec_devolucion DATETIME2(0) NULL,
+    fec_real_devolucion DATETIME2(0) NULL,
     nro_alquiler int NULL,
     importe_alquiler NUMERIC(38,2) NULL
 )
 
-create table ESTRESHADAS.Estado_Reparacion (
-    id_estadoRep BIGINT IDENTITY(1,1) PRIMARY KEY,
-    desc_estado varchar(255) NULL
+create table ESTRESHADAS.estado_reparacion (
+    id_est_reparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
+    desc_est_reparacion varchar(255) NULL
 )
 
-create table ESTRESHADAS.Reparacion (
+create table ESTRESHADAS.reparacion (
     id_reparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_cliente BIGINT REFERENCES ESTRESHADAS.Cliente(id_cliente),
-    id_empleado BIGINT REFERENCES ESTRESHADAS.Empleado(id_empleado),
-    id_producto BIGINT REFERENCES ESTRESHADAS.Producto(id_producto),
-    id_estadoRep BIGINT REFERENCES ESTRESHADAS.Estado_Reparacion(id_estadoRep),
+    id_cliente BIGINT REFERENCES ESTRESHADAS.cliente(id_cliente),
+    id_empleado BIGINT REFERENCES ESTRESHADAS.empleado(id_empleado),
+    id_producto BIGINT REFERENCES ESTRESHADAS.producto(id_producto),
+    id_est_reparacion BIGINT REFERENCES ESTRESHADAS.estado_reparacion(id_est_reparacion),
     nro_reparacion int NULL,
     nro_serie_bici_cli varchar(255) NULL,
     fecha_ingreso date NULL,
-    fecha_entregaEstm date NULL,
-    fecha_entregaReal date NULL,
+    fecha_entrega_estm date NULL,
+    fecha_entrega_real date NULL,
     diagnostico varchar(255) NULL,
-    precio_manoObra numeric(38,2) NULL,
+    precio_mano_obra numeric(38,2) NULL,
     precio_repuestos numeric(38,2) NULL,
     precio_total numeric(38,2) NULL
 )
 
-create table ESTRESHADAS.Categoria_Repuesto (
+create table ESTRESHADAS.categoria_repuesto (
     id_categoria BIGINT IDENTITY(1,1) PRIMARY KEY,
     desc_categoria varchar(255) NULL
 )
 
 create table ESTRESHADAS.Repuesto (
     id_repuesto BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_categoria BIGINT REFERENCES ESTRESHADAS.Categoria_Repuesto(id_categoria),
+    id_categoria BIGINT REFERENCES ESTRESHADAS.categoria_repuesto(id_categoria),
     cod_repuesto varchar(255) NULL,
     precio_repuesto numeric(38,2) NULL,
     desc_repuesto varchar(255) NULL,
     compatibilidad varchar(255) NULL
 )
 
-create table ESTRESHADAS.Detalle_Reparacion (
+create table ESTRESHADAS.detalle_reparacion (
     id_detReparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_reparacion BIGINT REFERENCES ESTRESHADAS.Reparacion(id_Reparacion),
-    id_repuesto BIGINT REFERENCES ESTRESHADAS.Repuesto(id_repuesto),
+    id_reparacion BIGINT REFERENCES ESTRESHADAS.reparacion(id_Reparacion),
+    id_repuesto BIGINT REFERENCES ESTRESHADAS.repuesto(id_repuesto),
     subtotal numeric(38,2) NULL,
     precio_unitario numeric(38,2) NULL,
     cantidad int NULL
