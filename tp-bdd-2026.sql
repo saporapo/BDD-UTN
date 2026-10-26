@@ -851,3 +851,34 @@ BEGIN
         ON EA.desc_est_alquiler = M.Estado_Alquiler_Estado_Alquiler;
 END;
 GO
+
+-- EJECUCION DE MIGRACIONES (ejecutar una sola vez)
+EXEC ESTRESHADAS.migracion_provincia;
+EXEC ESTRESHADAS.migracion_localidad;
+EXEC ESTRESHADAS.migracion_local;
+EXEC ESTRESHADAS.migracion_cliente;
+EXEC ESTRESHADAS.migracion_empleado;
+EXEC ESTRESHADAS.migracion_proveedor;
+EXEC ESTRESHADAS.migracion_marca;
+EXEC ESTRESHADAS.migracion_tipo_producto;
+EXEC ESTRESHADAS.migracion_categoria_accesorio;
+EXEC ESTRESHADAS.migracion_categoria_bicicleta;
+EXEC ESTRESHADAS.migracion_forma_pago;
+EXEC ESTRESHADAS.migracion_estado_bicicleta;
+EXEC ESTRESHADAS.migracion_estado_alquiler;
+EXEC ESTRESHADAS.migracion_estado_reparacion;
+EXEC ESTRESHADAS.migracion_producto;
+EXEC ESTRESHADAS.migracion_modelo;
+EXEC ESTRESHADAS.migracion_accesorio;
+EXEC ESTRESHADAS.migracion_bicicleta_venta;
+EXEC ESTRESHADAS.migracion_bicicleta_alquiler;
+EXEC ESTRESHADAS.migracion_compra;
+EXEC ESTRESHADAS.migracion_detalle_compra;
+EXEC ESTRESHADAS.migracion_venta;
+EXEC ESTRESHADAS.migracion_det_venta;
+EXEC ESTRESHADAS.migracion_categoria_repuesto;
+EXEC ESTRESHADAS.migracion_repuesto;
+EXEC ESTRESHADAS.migracion_reparacion;
+EXEC ESTRESHADAS.migracion_detalle_reparacion;
+EXEC ESTRESHADAS.migracion_alquiler;
+GO
