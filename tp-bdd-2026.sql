@@ -185,6 +185,7 @@ CREATE TABLE ESTRESHADAS.bicicleta_alquiler (
     precio_dia numeric(38,2) NULL
 )
 
+	-- para evitar duplicados en la tabla bicicleta_alquiler
 CREATE UNIQUE INDEX UX_bicicleta_alquiler_nro_serie
     ON ESTRESHADAS.bicicleta_alquiler (nro_serie_bici_alquiler)
     WHERE nro_serie_bici_alquiler IS NOT NULL;
