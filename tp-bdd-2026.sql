@@ -7,18 +7,18 @@ go
 
 
 -- TABLAS
-create table ESTRESHADAS.provincia ( --migrado
+create table ESTRESHADAS.provincia ( 
 	id_provincia BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	nom_provincia varchar(255) NULL
 )
 
-create table ESTRESHADAS.localidad ( --migrado
+create table ESTRESHADAS.localidad ( 
 	id_localidad BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	id_provincia BIGINT NOT NULL REFERENCES ESTRESHADAS.provincia(id_provincia),
 	nom_localidad varchar(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.local ( --migrado
+CREATE TABLE ESTRESHADAS.local ( 
     id_local BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	id_localidad BIGINT NOT NULL REFERENCES ESTRESHADAS.localidad(id_localidad),
     nom_local VARCHAR(255) NULL,
@@ -27,7 +27,7 @@ CREATE TABLE ESTRESHADAS.local ( --migrado
     email_local VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.proveedor ( --migrado
+CREATE TABLE ESTRESHADAS.proveedor ( 
     id_proveedor BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	id_localidad BIGINT NOT NULL REFERENCES ESTRESHADAS.localidad(id_localidad),
     cuit_proveedor VARCHAR(255) NULL,
@@ -37,11 +37,11 @@ CREATE TABLE ESTRESHADAS.proveedor ( --migrado
     email_proveedor VARCHAR(255) NULL
 )
 
-create table ESTRESHADAS.cliente ( --migrado
+create table ESTRESHADAS.cliente ( 
     id_cliente BIGINT IDENTITY(1,1) PRIMARY KEY,
     id_localidad BIGINT REFERENCES ESTRESHADAS.localidad(id_localidad),
     dni_cliente varchar(255) NULL,
-    fec_nac_cliente date NULL,
+    fec_nac_cliente datetime2(6) NULL,
     nom_cliente varchar(255) NULL,
     ape_cliente varchar(255) NULL,
     dir_cliente varchar(255) NULL,
@@ -49,13 +49,13 @@ create table ESTRESHADAS.cliente ( --migrado
     email_cliente varchar(255) NULL
 )
 
-create table ESTRESHADAS.empleado ( --migrado
+create table ESTRESHADAS.empleado ( 
 	id_empleado BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	id_localidad BIGINT NOT NULL REFERENCES ESTRESHADAS.localidad(id_localidad),
 	id_local BIGINT NOT NULL REFERENCES ESTRESHADAS.local(id_local),
 	dni_empleado varchar(255) NULL,
-	fec_nac_empleado date NULL,
-	fec_ingr_empleado date NULL,
+	fec_nac_empleado datetime2(6) NULL,
+	fec_ingr_empleado datetime2(6) NULL,
 	puesto_empleado varchar(255) NULL,
 	nom_empleado varchar(255) NULL,
 	ape_empleado varchar(255) NULL,
@@ -64,41 +64,41 @@ create table ESTRESHADAS.empleado ( --migrado
 	email_empleado varchar(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.compra ( --migrado
+CREATE TABLE ESTRESHADAS.compra ( 
     id_compra BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_empleado BIGINT NOT NULL REFERENCES ESTRESHADAS.empleado(id_empleado),
     id_proveedor BIGINT NOT NULL REFERENCES ESTRESHADAS.proveedor(id_proveedor),
     nro_compra int NULL,
     total_compra numeric(38,2) NULL,
-    fecha_compra date NULL
+    fecha_compra datetime2(6) NULL
 )
 
-create table ESTRESHADAS.forma_pago ( --migrado
+create table ESTRESHADAS.forma_pago ( 
 	id_forma_pago BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	dscr_forma_pago varchar(255) NULL
 )
 
-create table ESTRESHADAS.venta ( --migrado
+create table ESTRESHADAS.venta ( 
     id_venta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_empleado BIGINT NOT NULL REFERENCES ESTRESHADAS.empleado(id_empleado),
     id_cliente BIGINT NOT NULL REFERENCES ESTRESHADAS.cliente(id_cliente),
     id_forma_pago BIGINT NOT NULL REFERENCES ESTRESHADAS.forma_pago(id_forma_pago),
     nro_venta int NULL,
-    fecha_venta smallDateTime NULL,
+    fecha_venta datetime2(6) NULL,
     total_venta numeric(38,2) NULL
 )
 
-create table ESTRESHADAS.marca ( --migrado
+create table ESTRESHADAS.marca ( 
 	id_marca BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	dscr_marca varchar(255) NULL
 )
 
-create table ESTRESHADAS.tipo_producto ( --migrado
+create table ESTRESHADAS.tipo_producto ( 
 	id_tipo_producto BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	dscr_tipo_producto varchar(255) NULL
 )
 
-create table ESTRESHADAS.producto ( --migrado
+create table ESTRESHADAS.producto ( 
 	id_producto BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
 	id_marca BIGINT NOT NULL REFERENCES ESTRESHADAS.marca(id_marca),
 	id_tipo_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.tipo_producto(id_tipo_producto),
@@ -108,15 +108,16 @@ create table ESTRESHADAS.producto ( --migrado
 	prec_producto numeric(38,2) NULL
 )
 
-CREATE TABLE ESTRESHADAS.detalle_compra ( --migrado
+CREATE TABLE ESTRESHADAS.detalle_compra ( 
     id_det_compra BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_compra BIGINT NOT NULL REFERENCES ESTRESHADAS.compra(id_compra),
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
     cant_det_compra int NULL,
-    precio_unitario numeric(38,2) NULL
+    precio_unitario numeric(38,2) NULL,
+    subtotal_det_compra numeric(38,2) NULL
 )
 
-create table ESTRESHADAS.detalle_venta ( --migrado
+create table ESTRESHADAS.detalle_venta ( 
     id_det_venta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_venta BIGINT NOT NULL REFERENCES ESTRESHADAS.venta(id_venta),
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
@@ -125,22 +126,22 @@ create table ESTRESHADAS.detalle_venta ( --migrado
     subtot_det_venta numeric(38,2) NULL
 )
 
-CREATE TABLE ESTRESHADAS.estado_bicicleta ( --migrado
+CREATE TABLE ESTRESHADAS.estado_bicicleta ( 
     id_est_bicicleta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     desc_est_bici VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.estado_alquiler ( --migrado
+CREATE TABLE ESTRESHADAS.estado_alquiler ( 
     id_est_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     desc_est_alquiler VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.categoria_bicicleta ( --migrado
+CREATE TABLE ESTRESHADAS.categoria_bicicleta ( 
     id_cat_bicicleta BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     dscr_cat_bici VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.modelo ( --migrado
+CREATE TABLE ESTRESHADAS.modelo ( 
     id_modelo BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_cat_bicicleta BIGINT NOT NULL REFERENCES ESTRESHADAS.categoria_bicicleta(id_cat_bicicleta),
     nom_modelo VARCHAR(255) NULL,
@@ -149,12 +150,12 @@ CREATE TABLE ESTRESHADAS.modelo ( --migrado
     color_modelo VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.categoria_accesorio ( --migrado
+CREATE TABLE ESTRESHADAS.categoria_accesorio ( 
     id_cat_accesorio BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     dscr_cat_accesorio VARCHAR(255) NULL
 )
 
-CREATE TABLE ESTRESHADAS.accesorio ( --migrado
+CREATE TABLE ESTRESHADAS.accesorio ( 
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
     id_cat_accesorio BIGINT NOT NULL REFERENCES ESTRESHADAS.categoria_accesorio(id_cat_accesorio),
     talle_accesorio VARCHAR(255) NULL,
@@ -164,7 +165,7 @@ CREATE TABLE ESTRESHADAS.accesorio ( --migrado
     PRIMARY KEY (id_producto, id_cat_accesorio)
 );
 
-CREATE TABLE ESTRESHADAS.bicicleta_venta ( --migrado
+CREATE TABLE ESTRESHADAS.bicicleta_venta ( 
     id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
     meses_garantia int NULL,
@@ -173,8 +174,9 @@ CREATE TABLE ESTRESHADAS.bicicleta_venta ( --migrado
     PRIMARY KEY (id_producto, id_modelo)
 );
 
-CREATE TABLE ESTRESHADAS.bicicleta_alquiler ( --migrado
+CREATE TABLE ESTRESHADAS.bicicleta_alquiler ( 
     id_bici_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    nro_serie_bici_alquiler VARCHAR(255) NOT NULL UNIQUE,
     id_marca BIGINT NOT NULL REFERENCES ESTRESHADAS.marca(id_marca),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
 	id_local BIGINT NOT NULL REFERENCES ESTRESHADAS.local(id_local),
@@ -183,47 +185,48 @@ CREATE TABLE ESTRESHADAS.bicicleta_alquiler ( --migrado
     precio_dia numeric(38,2) NULL
 )
 
-CREATE TABLE ESTRESHADAS.alquiler ( --migrado
+CREATE TABLE ESTRESHADAS.alquiler ( 
     id_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     id_empleado BIGINT NOT NULL REFERENCES ESTRESHADAS.empleado(id_empleado),
     id_cliente BIGINT NOT NULL REFERENCES ESTRESHADAS.cliente(id_cliente),
     id_bici_alquiler BIGINT NOT NULL REFERENCES ESTRESHADAS.bicicleta_alquiler(id_bici_alquiler),
+	id_forma_pago BIGINT NOT NULL REFERENCES ESTRESHADAS.forma_pago(id_forma_pago),
 	id_est_alquiler BIGINT NOT NULL REFERENCES ESTRESHADAS.estado_alquiler(id_est_alquiler),
-    fec_init DATETIME2(0) NULL,
-    fec_devolucion DATETIME2(0) NULL,
-    fec_real_devolucion DATETIME2(0) NULL,
+    fec_init datetime2(6) NULL,
+    fec_devolucion datetime2(6) NULL,
+    fec_real_devolucion datetime2(6) NULL,
     nro_alquiler int NULL,
     importe_alquiler NUMERIC(38,2) NULL
 )
 
-create table ESTRESHADAS.estado_reparacion ( --migrado
+create table ESTRESHADAS.estado_reparacion ( 
     id_est_reparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
     desc_est_reparacion varchar(255) NULL
 )
 
-create table ESTRESHADAS.reparacion ( --migrado
+create table ESTRESHADAS.reparacion ( 
     id_reparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
     id_cliente BIGINT REFERENCES ESTRESHADAS.cliente(id_cliente),
     id_empleado BIGINT REFERENCES ESTRESHADAS.empleado(id_empleado),
-    id_producto BIGINT REFERENCES ESTRESHADAS.producto(id_producto),
+    id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
     id_est_reparacion BIGINT REFERENCES ESTRESHADAS.estado_reparacion(id_est_reparacion),
     nro_reparacion int NULL,
     nro_serie_bici_cli varchar(255) NULL,
-    fecha_ingreso date NULL,
-    fecha_entrega_estm date NULL,
-    fecha_entrega_real date NULL,
+    fecha_ingreso datetime2(6) NULL,
+    fecha_entrega_estm datetime2(6) NULL,
+    fecha_entrega_real datetime2(6) NULL,
     diagnostico varchar(255) NULL,
     precio_mano_obra numeric(38,2) NULL,
     precio_repuestos numeric(38,2) NULL,
     precio_total numeric(38,2) NULL
 )
 
-create table ESTRESHADAS.categoria_repuesto ( --migrado
+create table ESTRESHADAS.categoria_repuesto ( 
     id_categoria BIGINT IDENTITY(1,1) PRIMARY KEY,
     desc_categoria varchar(255) NULL
 )
 
-create table ESTRESHADAS.Repuesto ( --migrado
+create table ESTRESHADAS.Repuesto ( 
     id_repuesto BIGINT IDENTITY(1,1) PRIMARY KEY,
     id_categoria BIGINT REFERENCES ESTRESHADAS.categoria_repuesto(id_categoria),
     cod_repuesto varchar(255) NULL,
@@ -232,7 +235,7 @@ create table ESTRESHADAS.Repuesto ( --migrado
     compatibilidad varchar(255) NULL
 )
 
-create table ESTRESHADAS.detalle_reparacion ( --migrado
+create table ESTRESHADAS.detalle_reparacion ( 
     id_detReparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
     id_reparacion BIGINT REFERENCES ESTRESHADAS.reparacion(id_Reparacion),
     id_repuesto BIGINT REFERENCES ESTRESHADAS.repuesto(id_repuesto),
@@ -409,14 +412,14 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_reparacion
 AS
 BEGIN
-    INSERT INTO ESTRESHADAS.Reparacion (id_cliente, id_empleado, id_producto,
+    INSERT INTO ESTRESHADAS.Reparacion (id_cliente, id_empleado, id_modelo,
         id_est_reparacion, nro_reparacion, nro_serie_bici_cli, fecha_ingreso,
         fecha_entrega_estm, fecha_entrega_real, diagnostico,
         precio_mano_obra, precio_repuestos, precio_total)
     SELECT DISTINCT
         C.id_cliente,
         E.id_empleado,
-        P.id_producto,
+        MO.id_modelo,
         EP.id_est_reparacion,
         M.Reparacion_Nro_Reparacion,
         M.Reparacion_Numero_Serie_Bici_Reparacion,
@@ -432,11 +435,21 @@ BEGIN
         ON C.dni_cliente = M.Cliente_Dni_Cliente
     INNER JOIN ESTRESHADAS.Empleado E
         ON E.dni_empleado = M.Empleado_Dni_Empleado
-    INNER JOIN ESTRESHADAS.Producto P
-        ON P.cod_producto = M.Producto_Cod_Producto
+    INNER JOIN ESTRESHADAS.Modelo MO
+        ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+        AND (MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
+            OR (MO.rodado_modelo IS NULL AND M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta IS NULL))
+        AND (MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
+            OR (MO.cuadro_modelo IS NULL AND M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta IS NULL))
+        AND (MO.color_modelo = M.Modelo_Bicicleta_Color_Modelo_Bicicleta
+            OR (MO.color_modelo IS NULL AND M.Modelo_Bicicleta_Color_Modelo_Bicicleta IS NULL))
+    INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
+        ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
+        AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
     INNER JOIN ESTRESHADAS.Estado_Reparacion EP
         ON EP.desc_est_reparacion = M.Estado_Reparacion_Estado_Reparacion
-    WHERE M.Reparacion_Nro_Reparacion IS NOT NULL;
+    WHERE M.Reparacion_Nro_Reparacion IS NOT NULL
+        AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL;
 END;
 GO
 
@@ -531,19 +544,22 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_detalle_compra
 AS
 BEGIN
-    INSERT INTO ESTRESHADAS.Detalle_Compra (id_compra, id_producto, precio_unitario, cant_det_compra)
+    INSERT INTO ESTRESHADAS.Detalle_Compra (id_compra, id_producto, precio_unitario, cant_det_compra, subtotal_det_compra)
     SELECT DISTINCT
         C.id_compra,
         PR.id_producto,
         M.Detalle_Compra_Precio_Unitario_Prod_Compra,
-        M.Detalle_Compra_Cantidad_Prod_Compra
+        M.Detalle_Compra_Cantidad_Prod_Compra,
+        M.Detalle_Compra_Precio_Unitario_Prod_Compra * M.Detalle_Compra_Cantidad_Prod_Compra
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Compra C
         ON C.nro_compra = M.Compra_Nro_Compra
     INNER JOIN ESTRESHADAS.Producto PR
         ON PR.cod_producto = M.Producto_Cod_Producto
     WHERE M.Compra_Nro_Compra IS NOT NULL
-        AND M.Producto_Cod_Producto IS NOT NULL;
+        AND M.Producto_Cod_Producto IS NOT NULL
+        AND M.Detalle_Compra_Precio_Unitario_Prod_Compra IS NOT NULL
+        AND M.Detalle_Compra_Cantidad_Prod_Compra IS NOT NULL;
 END;
 GO
 
@@ -771,8 +787,9 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_bicicleta_alquiler
 AS
 BEGIN
-    INSERT INTO ESTRESHADAS.Bicicleta_Alquiler (id_marca, id_modelo, id_local, id_est_bicicleta, precio_hora, precio_dia)
+    INSERT INTO ESTRESHADAS.Bicicleta_Alquiler (nro_serie_bici_alquiler, id_marca, id_modelo, id_local, id_est_bicicleta, precio_hora, precio_dia)
     SELECT DISTINCT
+        M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler,
         MA.id_marca,
         MO.id_modelo,
         L.id_local,
@@ -784,51 +801,12 @@ BEGIN
         ON MA.dscr_marca = M.Marca_Marca
     INNER JOIN ESTRESHADAS.Modelo MO
         ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
-        AND MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
-        AND MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
-        AND MO.color_modelo = M.Modelo_Bicicleta_Color_Modelo_Bicicleta
-    INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
-        ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
-        AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
-    INNER JOIN ESTRESHADAS.Local L
-        ON L.nom_local = M.Local_Nombre_Local
-    INNER JOIN ESTRESHADAS.Localidad LOC
-        ON LOC.id_localidad = L.id_localidad
-        AND LOC.nom_localidad = M.Local_Localidad
-    INNER JOIN ESTRESHADAS.Provincia PROV
-        ON PROV.id_provincia = LOC.id_provincia
-        AND PROV.nom_provincia = M.Local_Provincia
-    INNER JOIN ESTRESHADAS.Estado_Bicicleta EB
-        ON EB.desc_est_bici = M.Estado_Bici_Alquiler_Estado_Bici_Alquiler;
-END;
-GO
-
-CREATE PROCEDURE ESTRESHADAS.migracion_alquiler
-AS
-BEGIN
-    INSERT INTO ESTRESHADAS.Alquiler (id_empleado, id_cliente, id_bici_alquiler, id_est_alquiler, fec_init, fec_devolucion, fec_real_devolucion, importe_alquiler, nro_alquiler)
-    SELECT DISTINCT
-        E.id_empleado,
-        C.id_cliente,
-        BA.id_bici_alquiler,
-        EA.id_est_alquiler,
-        M.Alquiler_Fecha_Inicio_Alquiler,
-        M.Alquiler_Fecha_Fin_Pactada_Alquiler,
-        M.Alquiler_Fecha_Devolucion_Real_Alquiler,
-        M.Alquiler_Importe_Total_Alquiler,
-        M.Alquiler_Nro_Alquiler
-    FROM gd_esquema.Maestra M
-    INNER JOIN ESTRESHADAS.Empleado E
-        ON E.dni_empleado = M.Empleado_Dni_Empleado
-    INNER JOIN ESTRESHADAS.Cliente C
-        ON C.dni_cliente = M.Cliente_Dni_Cliente
-    INNER JOIN ESTRESHADAS.Marca MA
-        ON MA.dscr_marca = M.Marca_Marca
-    INNER JOIN ESTRESHADAS.Modelo MO
-        ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
-        AND MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
-        AND MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
-        AND MO.color_modelo = M.Modelo_Bicicleta_Color_Modelo_Bicicleta
+        AND (MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
+            OR (MO.rodado_modelo IS NULL AND M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta IS NULL))
+        AND (MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
+            OR (MO.cuadro_modelo IS NULL AND M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta IS NULL))
+        AND (MO.color_modelo = M.Modelo_Bicicleta_Color_Modelo_Bicicleta
+            OR (MO.color_modelo IS NULL AND M.Modelo_Bicicleta_Color_Modelo_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
         ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
         AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
@@ -842,13 +820,37 @@ BEGIN
         AND PROV.nom_provincia = M.Local_Provincia
     INNER JOIN ESTRESHADAS.Estado_Bicicleta EB
         ON EB.desc_est_bici = M.Estado_Bici_Alquiler_Estado_Bici_Alquiler
+    WHERE M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler IS NOT NULL;
+END;
+GO
+
+CREATE PROCEDURE ESTRESHADAS.migracion_alquiler
+AS
+BEGIN
+    INSERT INTO ESTRESHADAS.Alquiler (id_empleado, id_cliente, id_bici_alquiler, id_forma_pago, id_est_alquiler, fec_init, fec_devolucion, fec_real_devolucion, importe_alquiler, nro_alquiler)
+    SELECT DISTINCT
+        E.id_empleado,
+        C.id_cliente,
+        BA.id_bici_alquiler,
+        FP.id_forma_pago,
+        EA.id_est_alquiler,
+        M.Alquiler_Fecha_Inicio_Alquiler,
+        M.Alquiler_Fecha_Fin_Pactada_Alquiler,
+        M.Alquiler_Fecha_Devolucion_Real_Alquiler,
+        M.Alquiler_Importe_Total_Alquiler,
+        M.Alquiler_Nro_Alquiler
+    FROM gd_esquema.Maestra M
+    INNER JOIN ESTRESHADAS.Empleado E
+        ON E.dni_empleado = M.Empleado_Dni_Empleado
+    INNER JOIN ESTRESHADAS.Cliente C
+        ON C.dni_cliente = M.Cliente_Dni_Cliente
     INNER JOIN ESTRESHADAS.Bicicleta_Alquiler BA
-        ON BA.id_marca = MA.id_marca
-        AND BA.id_modelo = MO.id_modelo
-        AND BA.id_local = L.id_local
-        AND BA.id_est_bicicleta = EB.id_est_bicicleta
+        ON BA.nro_serie_bici_alquiler = M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler
+    INNER JOIN ESTRESHADAS.Forma_Pago FP
+        ON FP.dscr_forma_pago = M.Forma_Pago_Forma_Pago
     INNER JOIN ESTRESHADAS.Estado_Alquiler EA
-        ON EA.desc_est_alquiler = M.Estado_Alquiler_Estado_Alquiler;
+        ON EA.desc_est_alquiler = M.Estado_Alquiler_Estado_Alquiler
+    WHERE M.Alquiler_Nro_Alquiler IS NOT NULL;
 END;
 GO
 
