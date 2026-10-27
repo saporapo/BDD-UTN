@@ -39,7 +39,7 @@ CREATE TABLE ESTRESHADAS.proveedor (
 
 create table ESTRESHADAS.cliente ( 
     id_cliente BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_localidad BIGINT REFERENCES ESTRESHADAS.localidad(id_localidad),
+    id_localidad BIGINT NOT NULL REFERENCES ESTRESHADAS.localidad(id_localidad),
     dni_cliente varchar(255) NULL,
     fec_nac_cliente datetime2(6) NULL,
     nom_cliente varchar(255) NULL,
@@ -176,7 +176,7 @@ CREATE TABLE ESTRESHADAS.bicicleta_venta (
 
 CREATE TABLE ESTRESHADAS.bicicleta_alquiler ( 
     id_bici_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    nro_serie_bici_alquiler VARCHAR(255) NOT NULL UNIQUE,
+    nro_serie_bici_alquiler VARCHAR(255) NULL,
     id_marca BIGINT NOT NULL REFERENCES ESTRESHADAS.marca(id_marca),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
 	id_local BIGINT NOT NULL REFERENCES ESTRESHADAS.local(id_local),
@@ -184,6 +184,10 @@ CREATE TABLE ESTRESHADAS.bicicleta_alquiler (
     precio_hora numeric(38,2) NULL,
     precio_dia numeric(38,2) NULL
 )
+
+CREATE UNIQUE INDEX UX_bicicleta_alquiler_nro_serie
+    ON ESTRESHADAS.bicicleta_alquiler (nro_serie_bici_alquiler)
+    WHERE nro_serie_bici_alquiler IS NOT NULL;
 
 CREATE TABLE ESTRESHADAS.alquiler ( 
     id_alquiler BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
@@ -206,10 +210,10 @@ create table ESTRESHADAS.estado_reparacion (
 
 create table ESTRESHADAS.reparacion ( 
     id_reparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_cliente BIGINT REFERENCES ESTRESHADAS.cliente(id_cliente),
-    id_empleado BIGINT REFERENCES ESTRESHADAS.empleado(id_empleado),
+    id_cliente BIGINT NOT NULL REFERENCES ESTRESHADAS.cliente(id_cliente),
+    id_empleado BIGINT NOT NULL REFERENCES ESTRESHADAS.empleado(id_empleado),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
-    id_est_reparacion BIGINT REFERENCES ESTRESHADAS.estado_reparacion(id_est_reparacion),
+    id_est_reparacion BIGINT NOT NULL REFERENCES ESTRESHADAS.estado_reparacion(id_est_reparacion),
     nro_reparacion int NULL,
     nro_serie_bici_cli varchar(255) NULL,
     fecha_ingreso datetime2(6) NULL,
@@ -228,7 +232,7 @@ create table ESTRESHADAS.categoria_repuesto (
 
 create table ESTRESHADAS.Repuesto ( 
     id_repuesto BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_categoria BIGINT REFERENCES ESTRESHADAS.categoria_repuesto(id_categoria),
+    id_categoria BIGINT NOT NULL REFERENCES ESTRESHADAS.categoria_repuesto(id_categoria),
     cod_repuesto varchar(255) NULL,
     precio_repuesto numeric(38,2) NULL,
     desc_repuesto varchar(255) NULL,
@@ -237,8 +241,8 @@ create table ESTRESHADAS.Repuesto (
 
 create table ESTRESHADAS.detalle_reparacion ( 
     id_detReparacion BIGINT IDENTITY(1,1) PRIMARY KEY,
-    id_reparacion BIGINT REFERENCES ESTRESHADAS.reparacion(id_Reparacion),
-    id_repuesto BIGINT REFERENCES ESTRESHADAS.repuesto(id_repuesto),
+    id_reparacion BIGINT NOT NULL REFERENCES ESTRESHADAS.reparacion(id_Reparacion),
+    id_repuesto BIGINT NOT NULL REFERENCES ESTRESHADAS.repuesto(id_repuesto),
     subtotal numeric(38,2) NULL,
     precio_unitario numeric(38,2) NULL,
     cantidad int NULL
@@ -257,29 +261,29 @@ BEGIN
     -- al cargar las de empleado, pregunto si no existe 1 fila con ese nombre provincia ya asignado
     INSERT INTO ESTRESHADAS.provincia (nom_provincia)
     SELECT DISTINCT empleado_provincia FROM gd_esquema.Maestra
-    WHERE empleado_provincia IS NOT NULL
-        AND NOT EXISTS (
+    WHERE NOT EXISTS (
           SELECT 1
           FROM ESTRESHADAS.provincia
           WHERE provincia.nom_provincia = empleado_provincia
+             OR (provincia.nom_provincia IS NULL AND empleado_provincia IS NULL)
         )
 
     INSERT INTO ESTRESHADAS.provincia (nom_provincia)
     SELECT DISTINCT proveedor_provincia FROM gd_esquema.Maestra
-    WHERE proveedor_provincia IS NOT NULL
-        AND NOT EXISTS (
+    WHERE NOT EXISTS (
           SELECT 1
           FROM ESTRESHADAS.provincia
           WHERE provincia.nom_provincia = proveedor_provincia
+             OR (provincia.nom_provincia IS NULL AND proveedor_provincia IS NULL)
         )
 
     INSERT INTO ESTRESHADAS.provincia (nom_provincia)
     SELECT DISTINCT local_provincia FROM gd_esquema.Maestra
-    WHERE local_provincia IS NOT NULL
-        AND NOT EXISTS (
+    WHERE NOT EXISTS (
           SELECT 1
           FROM ESTRESHADAS.provincia
           WHERE provincia.nom_provincia = local_provincia
+             OR (provincia.nom_provincia IS NULL AND local_provincia IS NULL)
         )
 END;
 GO
@@ -292,12 +296,13 @@ BEGIN
     FROM gd_esquema.Maestra
     INNER JOIN ESTRESHADAS.provincia
         ON provincia.nom_provincia = cliente_provincia
-    WHERE cliente_localidad IS NOT NULL
-        AND NOT EXISTS (
+        OR (provincia.nom_provincia IS NULL AND cliente_provincia IS NULL)
+    WHERE NOT EXISTS (
             SELECT 1
             FROM ESTRESHADAS.localidad
             WHERE localidad.id_provincia = provincia.id_provincia
-            AND localidad.nom_localidad = cliente_localidad
+            AND (localidad.nom_localidad = cliente_localidad
+                OR (localidad.nom_localidad IS NULL AND cliente_localidad IS NULL))
         )
 
     INSERT INTO ESTRESHADAS.localidad (id_provincia, nom_localidad)
@@ -305,12 +310,13 @@ BEGIN
     FROM gd_esquema.Maestra
     INNER JOIN ESTRESHADAS.provincia
         ON provincia.nom_provincia = empleado_provincia
-    WHERE empleado_localidad IS NOT NULL
-        AND NOT EXISTS (
+        OR (provincia.nom_provincia IS NULL AND empleado_provincia IS NULL)
+    WHERE NOT EXISTS (
             SELECT 1
             FROM ESTRESHADAS.localidad
             WHERE localidad.id_provincia = provincia.id_provincia
-            AND localidad.nom_localidad = empleado_localidad
+            AND (localidad.nom_localidad = empleado_localidad
+                OR (localidad.nom_localidad IS NULL AND empleado_localidad IS NULL))
         )
 
     INSERT INTO ESTRESHADAS.localidad (id_provincia, nom_localidad)
@@ -318,12 +324,13 @@ BEGIN
     FROM gd_esquema.Maestra
     INNER JOIN ESTRESHADAS.provincia
         ON provincia.nom_provincia = proveedor_provincia
-    WHERE proveedor_localidad IS NOT NULL
-        AND NOT EXISTS (
+        OR (provincia.nom_provincia IS NULL AND proveedor_provincia IS NULL)
+    WHERE NOT EXISTS (
             SELECT 1
             FROM ESTRESHADAS.localidad
             WHERE localidad.id_provincia = provincia.id_provincia
-            AND localidad.nom_localidad = proveedor_localidad
+            AND (localidad.nom_localidad = proveedor_localidad
+                OR (localidad.nom_localidad IS NULL AND proveedor_localidad IS NULL))
         )
 
     INSERT INTO ESTRESHADAS.localidad (id_provincia, nom_localidad)
@@ -331,12 +338,13 @@ BEGIN
     FROM gd_esquema.Maestra
     INNER JOIN ESTRESHADAS.provincia
         ON provincia.nom_provincia = local_provincia
-    WHERE local_localidad IS NOT NULL
-        AND NOT EXISTS (
+        OR (provincia.nom_provincia IS NULL AND local_provincia IS NULL)
+    WHERE NOT EXISTS (
             SELECT 1
             FROM ESTRESHADAS.localidad
             WHERE localidad.id_provincia = provincia.id_provincia
-            AND localidad.nom_localidad = local_localidad
+            AND (localidad.nom_localidad = local_localidad
+                OR (localidad.nom_localidad IS NULL AND local_localidad IS NULL))
         )
 END;
 GO
@@ -356,11 +364,12 @@ BEGIN
         M.Cliente_Email_Cliente
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Localidad L
-        ON L.nom_localidad = M.Cliente_Localidad
+        ON (L.nom_localidad = M.Cliente_Localidad
+            OR (L.nom_localidad IS NULL AND M.Cliente_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PR
         ON PR.id_provincia = L.id_provincia
-        AND PR.nom_provincia = M.Cliente_Provincia
-    WHERE M.Cliente_Dni_Cliente IS NOT NULL;
+        AND (PR.nom_provincia = M.Cliente_Provincia
+            OR (PR.nom_provincia IS NULL AND M.Cliente_Provincia IS NULL));
 END;
 GO
 
@@ -383,19 +392,23 @@ BEGIN
         M.Empleado_Email_Empleado
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Localidad L
-        ON L.nom_localidad = M.Empleado_Localidad
+        ON (L.nom_localidad = M.Empleado_Localidad
+            OR (L.nom_localidad IS NULL AND M.Empleado_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PR
         ON PR.id_provincia = L.id_provincia
-        AND PR.nom_provincia = M.Empleado_Provincia
+        AND (PR.nom_provincia = M.Empleado_Provincia
+            OR (PR.nom_provincia IS NULL AND M.Empleado_Provincia IS NULL))
     INNER JOIN ESTRESHADAS.Local LO
-        ON LO.nom_local = M.Local_Nombre_Local
+        ON (LO.nom_local = M.Local_Nombre_Local
+            OR (LO.nom_local IS NULL AND M.Local_Nombre_Local IS NULL))
     INNER JOIN ESTRESHADAS.Localidad LL
         ON LL.id_localidad = LO.id_localidad
-        AND LL.nom_localidad = M.Local_Localidad
+        AND (LL.nom_localidad = M.Local_Localidad
+            OR (LL.nom_localidad IS NULL AND M.Local_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PL
         ON PL.id_provincia = LL.id_provincia
-        AND PL.nom_provincia = M.Local_Provincia
-    WHERE M.Empleado_Dni_Empleado IS NOT NULL;
+        AND (PL.nom_provincia = M.Local_Provincia
+            OR (PL.nom_provincia IS NULL AND M.Local_Provincia IS NULL));
 END;
 GO
 
@@ -404,8 +417,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Estado_Reparacion (desc_est_reparacion)
     SELECT DISTINCT M.Estado_Reparacion_Estado_Reparacion
-    FROM gd_esquema.Maestra M
-    WHERE M.Estado_Reparacion_Estado_Reparacion IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -436,7 +448,8 @@ BEGIN
     INNER JOIN ESTRESHADAS.Empleado E
         ON E.dni_empleado = M.Empleado_Dni_Empleado
     INNER JOIN ESTRESHADAS.Modelo MO
-        ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+        ON (MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+            OR (MO.nom_modelo IS NULL AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NULL))
         AND (MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
             OR (MO.rodado_modelo IS NULL AND M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta IS NULL))
         AND (MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
@@ -445,11 +458,11 @@ BEGIN
             OR (MO.color_modelo IS NULL AND M.Modelo_Bicicleta_Color_Modelo_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
         ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
-        AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+        AND (CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Estado_Reparacion EP
-        ON EP.desc_est_reparacion = M.Estado_Reparacion_Estado_Reparacion
-    WHERE M.Reparacion_Nro_Reparacion IS NOT NULL
-        AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL;
+        ON (EP.desc_est_reparacion = M.Estado_Reparacion_Estado_Reparacion
+            OR (EP.desc_est_reparacion IS NULL AND M.Estado_Reparacion_Estado_Reparacion IS NULL));
 END;
 GO
 
@@ -458,8 +471,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Categoria_Repuesto (desc_categoria)
     SELECT DISTINCT M.Categoria_Repuestos_Categoria_Respuesto
-    FROM gd_esquema.Maestra M
-    WHERE M.Categoria_Repuestos_Categoria_Respuesto IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -475,8 +487,8 @@ BEGIN
         M.Repuesto_Compatibilidad_Repuesto
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Categoria_Repuesto CR
-        ON CR.desc_categoria = M.Categoria_Repuestos_Categoria_Respuesto
-    WHERE M.Repuesto_Cod_Repuesto IS NOT NULL;
+        ON (CR.desc_categoria = M.Categoria_Repuestos_Categoria_Respuesto
+            OR (CR.desc_categoria IS NULL AND M.Categoria_Repuestos_Categoria_Respuesto IS NULL));
 END;
 GO
 
@@ -494,10 +506,7 @@ BEGIN
     INNER JOIN ESTRESHADAS.Reparacion R
         ON R.nro_reparacion = M.Reparacion_Nro_Reparacion
     INNER JOIN ESTRESHADAS.Repuesto REPU
-        ON REPU.cod_repuesto = M.Repuesto_Cod_Repuesto
-    WHERE M.Detalle_Reparacion_Subtotal_Repuesto IS NOT NULL
-        AND M.Detalle_Reparacion_Precio_Unitario_Repuesto IS NOT NULL
-        AND M.Detalle_Reparacion_Cantidad_Repuesto IS NOT NULL;
+        ON REPU.cod_repuesto = M.Repuesto_Cod_Repuesto;
 END;
 GO
 
@@ -514,11 +523,12 @@ BEGIN
         M.Proveedor_Email_Proveedor
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Localidad L
-        ON L.nom_localidad = M.Proveedor_Localidad
+        ON (L.nom_localidad = M.Proveedor_Localidad
+            OR (L.nom_localidad IS NULL AND M.Proveedor_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PR
         ON PR.id_provincia = L.id_provincia
-        AND PR.nom_provincia = M.Proveedor_Provincia
-    WHERE M.Proveedor_Cuit_Proveedor IS NOT NULL;
+        AND (PR.nom_provincia = M.Proveedor_Provincia
+            OR (PR.nom_provincia IS NULL AND M.Proveedor_Provincia IS NULL));
 END;
 GO
 
@@ -536,8 +546,7 @@ BEGIN
     INNER JOIN ESTRESHADAS.Empleado E
         ON E.dni_empleado = M.Empleado_Dni_Empleado
     INNER JOIN ESTRESHADAS.Proveedor P
-        ON P.cuit_proveedor = M.Proveedor_Cuit_Proveedor
-    WHERE M.Compra_Nro_Compra IS NOT NULL;
+        ON P.cuit_proveedor = M.Proveedor_Cuit_Proveedor;
 END;
 GO
 
@@ -555,11 +564,7 @@ BEGIN
     INNER JOIN ESTRESHADAS.Compra C
         ON C.nro_compra = M.Compra_Nro_Compra
     INNER JOIN ESTRESHADAS.Producto PR
-        ON PR.cod_producto = M.Producto_Cod_Producto
-    WHERE M.Compra_Nro_Compra IS NOT NULL
-        AND M.Producto_Cod_Producto IS NOT NULL
-        AND M.Detalle_Compra_Precio_Unitario_Prod_Compra IS NOT NULL
-        AND M.Detalle_Compra_Cantidad_Prod_Compra IS NOT NULL;
+        ON PR.cod_producto = M.Producto_Cod_Producto;
 END;
 GO
 
@@ -575,11 +580,12 @@ BEGIN
         M.Local_Email_Local
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Localidad L
-        ON L.nom_localidad = M.Local_Localidad
+        ON (L.nom_localidad = M.Local_Localidad
+            OR (L.nom_localidad IS NULL AND M.Local_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PR
         ON PR.id_provincia = L.id_provincia
-        AND PR.nom_provincia = M.Local_Provincia
-    WHERE M.Local_Nombre_Local IS NOT NULL;
+        AND (PR.nom_provincia = M.Local_Provincia
+            OR (PR.nom_provincia IS NULL AND M.Local_Provincia IS NULL));
 END;
 GO
 
@@ -588,8 +594,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Estado_Bicicleta (desc_est_bici)
     SELECT DISTINCT M.Estado_Bici_Alquiler_Estado_Bici_Alquiler
-    FROM gd_esquema.Maestra M
-    WHERE M.Estado_Bici_Alquiler_Estado_Bici_Alquiler IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -598,8 +603,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Estado_Alquiler (desc_est_alquiler)
     SELECT DISTINCT M.Estado_Alquiler_Estado_Alquiler
-    FROM gd_esquema.Maestra M
-    WHERE M.Estado_Alquiler_Estado_Alquiler IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -608,8 +612,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Marca (dscr_marca)
     SELECT DISTINCT M.Marca_Marca
-    FROM gd_esquema.Maestra M
-    WHERE M.Marca_Marca IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -618,8 +621,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Tipo_Producto (dscr_tipo_producto)
     SELECT DISTINCT M.Tipo_Producto_Tipo_Producto
-    FROM gd_esquema.Maestra M
-    WHERE M.Tipo_Producto_Tipo_Producto IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -636,10 +638,11 @@ BEGIN
         M.Producto_Precio_Venta_Producto
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Marca MA
-        ON MA.dscr_marca = M.Marca_Marca
+        ON (MA.dscr_marca = M.Marca_Marca
+            OR (MA.dscr_marca IS NULL AND M.Marca_Marca IS NULL))
     INNER JOIN ESTRESHADAS.Tipo_Producto TP
-        ON TP.dscr_tipo_producto = M.Tipo_Producto_Tipo_Producto
-    WHERE M.Producto_Cod_Producto IS NOT NULL;
+        ON (TP.dscr_tipo_producto = M.Tipo_Producto_Tipo_Producto
+            OR (TP.dscr_tipo_producto IS NULL AND M.Tipo_Producto_Tipo_Producto IS NULL));
 END;
 GO
 
@@ -648,8 +651,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Categoria_Accesorio (dscr_cat_accesorio)
     SELECT DISTINCT M.Categoria_Accesorios_Categoria_Accesorio
-    FROM gd_esquema.Maestra M
-    WHERE M.Categoria_Accesorios_Categoria_Accesorio IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -658,8 +660,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.Categoria_Bicicleta (dscr_cat_bici)
     SELECT DISTINCT M.Categoria_Bicicleta_Categoria_Bicicleta
-    FROM gd_esquema.Maestra M
-    WHERE M.Categoria_Bicicleta_Categoria_Bicicleta IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -668,8 +669,7 @@ AS
 BEGIN
     INSERT INTO ESTRESHADAS.forma_pago (dscr_forma_pago)
     SELECT DISTINCT M.Forma_Pago_Forma_Pago
-    FROM gd_esquema.Maestra M
-    WHERE M.Forma_Pago_Forma_Pago IS NOT NULL;
+    FROM gd_esquema.Maestra M;
 END;
 GO
 
@@ -693,8 +693,8 @@ BEGIN
     INNER JOIN ESTRESHADAS.Cliente C
         ON C.dni_cliente = M.Cliente_Dni_Cliente
     INNER JOIN ESTRESHADAS.Forma_Pago FP
-        ON FP.dscr_forma_pago = M.Forma_Pago_Forma_Pago
-    WHERE M.Venta_Nro_Venta IS NOT NULL;
+        ON (FP.dscr_forma_pago = M.Forma_Pago_Forma_Pago
+            OR (FP.dscr_forma_pago IS NULL AND M.Forma_Pago_Forma_Pago IS NULL));
 END;
 GO
 
@@ -714,9 +714,7 @@ BEGIN
     INNER JOIN ESTRESHADAS.venta V
         ON V.nro_venta = M.Venta_Nro_Venta
     INNER JOIN ESTRESHADAS.producto P
-        ON P.cod_producto = M.Producto_Cod_Producto
-    WHERE M.Venta_Nro_Venta IS NOT NULL
-        AND M.Producto_Cod_Producto IS NOT NULL;
+        ON P.cod_producto = M.Producto_Cod_Producto;
 END;
 GO
 
@@ -733,9 +731,8 @@ BEGIN
     INNER JOIN ESTRESHADAS.Producto P
         ON P.cod_producto = M.Producto_Cod_Producto
     INNER JOIN ESTRESHADAS.Categoria_Accesorio CA
-        ON CA.dscr_cat_accesorio = M.Categoria_Accesorios_Categoria_Accesorio
-    WHERE M.Producto_Cod_Producto IS NOT NULL
-        AND M.Categoria_Accesorios_Categoria_Accesorio IS NOT NULL;
+        ON (CA.dscr_cat_accesorio = M.Categoria_Accesorios_Categoria_Accesorio
+            OR (CA.dscr_cat_accesorio IS NULL AND M.Categoria_Accesorios_Categoria_Accesorio IS NULL));
 END;
 GO
 
@@ -751,8 +748,8 @@ BEGIN
         M.Modelo_Bicicleta_Color_Modelo_Bicicleta
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
-        ON CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
-    WHERE M.Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL;
+        ON (CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL));
 END;
 GO
 
@@ -768,7 +765,8 @@ BEGIN
     INNER JOIN ESTRESHADAS.Producto P
         ON P.cod_producto = M.Producto_Cod_Producto
     INNER JOIN ESTRESHADAS.modelo MO
-        ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+        ON (MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+            OR (MO.nom_modelo IS NULL AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NULL))
         AND (MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
             OR (MO.rodado_modelo IS NULL AND M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta IS NULL))
         AND (MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
@@ -777,10 +775,8 @@ BEGIN
             OR (MO.color_modelo IS NULL AND M.Modelo_Bicicleta_Color_Modelo_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
         ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
-        AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
-    WHERE M.Producto_Cod_Producto IS NOT NULL
-        AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL
-        AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NOT NULL;
+        AND (CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL));
 END;
 GO
 
@@ -798,9 +794,11 @@ BEGIN
         M.Bicicleta_Alquiler_Precio_Bici_Alquiler_Dia
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Marca MA
-        ON MA.dscr_marca = M.Marca_Marca
+        ON (MA.dscr_marca = M.Marca_Marca
+            OR (MA.dscr_marca IS NULL AND M.Marca_Marca IS NULL))
     INNER JOIN ESTRESHADAS.Modelo MO
-        ON MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+        ON (MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
+            OR (MO.nom_modelo IS NULL AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NULL))
         AND (MO.rodado_modelo = M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta
             OR (MO.rodado_modelo IS NULL AND M.Modelo_Bicicleta_Rodado_Modelo_Bicicleta IS NULL))
         AND (MO.cuadro_modelo = M.Modelo_Bicicleta_Cuadro_Modelo_Bicicleta
@@ -809,18 +807,22 @@ BEGIN
             OR (MO.color_modelo IS NULL AND M.Modelo_Bicicleta_Color_Modelo_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
         ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
-        AND CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+        AND (CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
+            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL))
     INNER JOIN ESTRESHADAS.Local L
-        ON L.nom_local = M.Local_Nombre_Local
+        ON (L.nom_local = M.Local_Nombre_Local
+            OR (L.nom_local IS NULL AND M.Local_Nombre_Local IS NULL))
     INNER JOIN ESTRESHADAS.Localidad LOC
         ON LOC.id_localidad = L.id_localidad
-        AND LOC.nom_localidad = M.Local_Localidad
+        AND (LOC.nom_localidad = M.Local_Localidad
+            OR (LOC.nom_localidad IS NULL AND M.Local_Localidad IS NULL))
     INNER JOIN ESTRESHADAS.Provincia PROV
         ON PROV.id_provincia = LOC.id_provincia
-        AND PROV.nom_provincia = M.Local_Provincia
+        AND (PROV.nom_provincia = M.Local_Provincia
+            OR (PROV.nom_provincia IS NULL AND M.Local_Provincia IS NULL))
     INNER JOIN ESTRESHADAS.Estado_Bicicleta EB
-        ON EB.desc_est_bici = M.Estado_Bici_Alquiler_Estado_Bici_Alquiler
-    WHERE M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler IS NOT NULL;
+        ON (EB.desc_est_bici = M.Estado_Bici_Alquiler_Estado_Bici_Alquiler
+            OR (EB.desc_est_bici IS NULL AND M.Estado_Bici_Alquiler_Estado_Bici_Alquiler IS NULL));
 END;
 GO
 
@@ -847,10 +849,11 @@ BEGIN
     INNER JOIN ESTRESHADAS.Bicicleta_Alquiler BA
         ON BA.nro_serie_bici_alquiler = M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler
     INNER JOIN ESTRESHADAS.Forma_Pago FP
-        ON FP.dscr_forma_pago = M.Forma_Pago_Forma_Pago
+        ON (FP.dscr_forma_pago = M.Forma_Pago_Forma_Pago
+            OR (FP.dscr_forma_pago IS NULL AND M.Forma_Pago_Forma_Pago IS NULL))
     INNER JOIN ESTRESHADAS.Estado_Alquiler EA
-        ON EA.desc_est_alquiler = M.Estado_Alquiler_Estado_Alquiler
-    WHERE M.Alquiler_Nro_Alquiler IS NOT NULL;
+        ON (EA.desc_est_alquiler = M.Estado_Alquiler_Estado_Alquiler
+            OR (EA.desc_est_alquiler IS NULL AND M.Estado_Alquiler_Estado_Alquiler IS NULL));
 END;
 GO
 
