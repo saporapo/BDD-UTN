@@ -156,22 +156,16 @@ CREATE TABLE ESTRESHADAS.categoria_accesorio (
 )
 
 CREATE TABLE ESTRESHADAS.accesorio ( 
-    id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
+    id_producto BIGINT NOT NULL PRIMARY KEY REFERENCES ESTRESHADAS.producto(id_producto),
     id_cat_accesorio BIGINT NOT NULL REFERENCES ESTRESHADAS.categoria_accesorio(id_cat_accesorio),
     talle_accesorio VARCHAR(255) NULL,
-    color_accesorio VARCHAR(255) NULL,
-    
-    -- Clave Primaria Compuesta para que identifique univocamente un producto de tipo accesorio
-    PRIMARY KEY (id_producto, id_cat_accesorio)
+    color_accesorio VARCHAR(255) NULL
 );
 
 CREATE TABLE ESTRESHADAS.bicicleta_venta ( 
-    id_producto BIGINT NOT NULL REFERENCES ESTRESHADAS.producto(id_producto),
+    id_producto BIGINT NOT NULL PRIMARY KEY REFERENCES ESTRESHADAS.producto(id_producto),
     id_modelo BIGINT NOT NULL REFERENCES ESTRESHADAS.modelo(id_modelo),
-    meses_garantia int NULL,
-    
-    -- Clave Primaria Compuesta para que identifique univocamente un producto de tipo bici_venta
-    PRIMARY KEY (id_producto, id_modelo)
+    meses_garantia int NULL
 );
 
 CREATE TABLE ESTRESHADAS.bicicleta_alquiler ( 
@@ -731,9 +725,14 @@ BEGIN
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Producto P
         ON P.cod_producto = M.Producto_Cod_Producto
+    INNER JOIN ESTRESHADAS.Tipo_Producto TP
+        ON TP.id_tipo_producto = P.id_tipo_producto
+        AND (TP.dscr_tipo_producto = M.Tipo_Producto_Tipo_Producto
+            OR (TP.dscr_tipo_producto IS NULL AND M.Tipo_Producto_Tipo_Producto IS NULL))
     INNER JOIN ESTRESHADAS.Categoria_Accesorio CA
         ON (CA.dscr_cat_accesorio = M.Categoria_Accesorios_Categoria_Accesorio
-            OR (CA.dscr_cat_accesorio IS NULL AND M.Categoria_Accesorios_Categoria_Accesorio IS NULL));
+            OR (CA.dscr_cat_accesorio IS NULL AND M.Categoria_Accesorios_Categoria_Accesorio IS NULL))
+    WHERE UPPER(LTRIM(RTRIM(TP.dscr_tipo_producto))) LIKE '%ACCESORIO%';
 END;
 GO
 
@@ -765,6 +764,10 @@ BEGIN
     FROM gd_esquema.Maestra M
     INNER JOIN ESTRESHADAS.Producto P
         ON P.cod_producto = M.Producto_Cod_Producto
+    INNER JOIN ESTRESHADAS.Tipo_Producto TP
+        ON TP.id_tipo_producto = P.id_tipo_producto
+        AND (TP.dscr_tipo_producto = M.Tipo_Producto_Tipo_Producto
+            OR (TP.dscr_tipo_producto IS NULL AND M.Tipo_Producto_Tipo_Producto IS NULL))
     INNER JOIN ESTRESHADAS.modelo MO
         ON (MO.nom_modelo = M.Modelo_Bicicleta_Modelo_Bicicleta
             OR (MO.nom_modelo IS NULL AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NULL))
@@ -777,7 +780,8 @@ BEGIN
     INNER JOIN ESTRESHADAS.Categoria_Bicicleta CB
         ON CB.id_cat_bicicleta = MO.id_cat_bicicleta
         AND (CB.dscr_cat_bici = M.Categoria_Bicicleta_Categoria_Bicicleta
-            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL));
+            OR (CB.dscr_cat_bici IS NULL AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NULL))
+    WHERE UPPER(LTRIM(RTRIM(TP.dscr_tipo_producto))) LIKE '%BICI%';
 END;
 GO
 
