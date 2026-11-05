@@ -5,8 +5,6 @@ GO
 CREATE SCHEMA ESTRESHADAS;
 go
 
---SELECT *
---FROM gd_esquema.Maestra;
 
 -- TABLAS
 create table ESTRESHADAS.provincia ( 
@@ -293,8 +291,18 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_cliente
 AS
 BEGIN
+    ;WITH PrimerRegistroCliente AS (
+        SELECT
+            M.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY M.Cliente_Dni_Cliente
+                ORDER BY M.Id
+            ) AS rn
+        FROM gd_esquema.Maestra M
+        WHERE M.Cliente_Dni_Cliente IS NOT NULL
+    )
     INSERT INTO ESTRESHADAS.Cliente (id_localidad, dni_cliente, fec_nac_cliente, nom_cliente, ape_cliente, dir_cliente, tel_cliente, email_cliente)
-    SELECT DISTINCT
+    SELECT
         L.id_localidad,
         M.Cliente_Dni_Cliente,
         M.Cliente_Fecha_Nacimiento_Cliente,
@@ -303,7 +311,7 @@ BEGIN
         M.Cliente_Direccion_Cliente,
         M.Cliente_Telefono_Cliente,
         M.Cliente_Email_Cliente
-    FROM gd_esquema.Maestra M
+    FROM PrimerRegistroCliente M
     -- 1. Buscamos primero la provincia del cliente
     INNER JOIN ESTRESHADAS.provincia P
         ON P.nom_provincia = M.Cliente_Provincia
@@ -311,7 +319,12 @@ BEGIN
     INNER JOIN ESTRESHADAS.localidad L
         ON L.nom_localidad = M.Cliente_Localidad
             AND L.id_provincia = P.id_provincia
-    WHERE M.Cliente_Dni_Cliente IS NOT NULL;
+    WHERE M.rn = 1
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Cliente C_EXISTENTE
+          WHERE C_EXISTENTE.dni_cliente = M.Cliente_Dni_Cliente
+      );
 END;
 GO
 
@@ -339,6 +352,22 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_empleado
 AS
 BEGIN
+    ;WITH PrimeraOperacionEmpleado AS (
+        SELECT
+            M.*,
+            ROW_NUMBER() OVER (
+                PARTITION BY M.Empleado_Dni_Empleado
+                ORDER BY M.Id
+            ) AS rn
+        FROM gd_esquema.Maestra M
+        WHERE M.Empleado_Dni_Empleado IS NOT NULL
+          AND (
+              M.Venta_Nro_Venta IS NOT NULL
+              OR M.Compra_Nro_Compra IS NOT NULL
+              OR M.Reparacion_Nro_Reparacion IS NOT NULL
+              OR M.Alquiler_Nro_Alquiler IS NOT NULL
+          )
+    )
     INSERT INTO ESTRESHADAS.empleado (id_localidad, id_local, dni_empleado, fec_nac_empleado,
         fec_ingr_empleado, puesto_empleado, nom_empleado, ape_empleado, domc_empleado, tell_empleado, email_empleado)
     SELECT DISTINCT
@@ -353,7 +382,7 @@ BEGIN
         M.Empleado_Domicilio_Empleado,
         M.Empleado_Telefono_Empleado,
         M.Empleado_Email_Empleado
-    FROM gd_esquema.Maestra M
+    FROM PrimeraOperacionEmpleado M
     INNER JOIN ESTRESHADAS.provincia P
         ON P.nom_provincia = M.Empleado_Provincia
     INNER JOIN ESTRESHADAS.localidad L
@@ -362,11 +391,22 @@ BEGIN
     INNER JOIN ESTRESHADAS.Local LO
         ON LO.nom_local = M.Local_Nombre_Local
         AND LO.dir_local = M.Local_Direccion_Local
-    WHERE M.Empleado_Dni_Empleado IS NOT NULL
+    INNER JOIN ESTRESHADAS.localidad L_LOCAL
+        ON L_LOCAL.id_localidad = LO.id_localidad
+        AND L_LOCAL.nom_localidad = M.Local_Localidad
+    INNER JOIN ESTRESHADAS.provincia P_LOCAL
+        ON P_LOCAL.id_provincia = L_LOCAL.id_provincia
+        AND P_LOCAL.nom_provincia = M.Local_Provincia
+    WHERE M.rn = 1
       AND M.Empleado_Provincia IS NOT NULL
       AND M.Empleado_Localidad IS NOT NULL
       AND M.Local_Nombre_Local IS NOT NULL
-      AND M.Local_Direccion_Local IS NOT NULL;
+      AND M.Local_Direccion_Local IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Empleado E_EXISTENTE
+          WHERE E_EXISTENTE.dni_empleado = M.Empleado_Dni_Empleado
+      );
 END;
 GO
 
@@ -444,7 +484,12 @@ BEGIN
       AND M.Empleado_Dni_Empleado IS NOT NULL
       AND M.Modelo_Bicicleta_Modelo_Bicicleta IS NOT NULL
       AND M.Categoria_Bicicleta_Categoria_Bicicleta IS NOT NULL
-      AND M.Estado_Reparacion_Estado_Reparacion IS NOT NULL;
+      AND M.Estado_Reparacion_Estado_Reparacion IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Reparacion R_EXISTENTE
+          WHERE R_EXISTENTE.nro_reparacion = M.Reparacion_Nro_Reparacion
+      );
 END;
 GO
 
@@ -479,20 +524,42 @@ GO
 CREATE PROCEDURE ESTRESHADAS.migracion_detalle_reparacion
 AS
 BEGIN
+    ;WITH Origen AS (
+        SELECT
+            R.id_reparacion,
+            REPU.id_repuesto,
+            M.Detalle_Reparacion_Subtotal_Repuesto AS subtotal,
+            M.Detalle_Reparacion_Precio_Unitario_Repuesto AS precio_unitario,
+            M.Detalle_Reparacion_Cantidad_Repuesto AS cantidad,
+            ROW_NUMBER() OVER (
+                PARTITION BY R.id_reparacion, REPU.id_repuesto,
+                    M.Detalle_Reparacion_Subtotal_Repuesto,
+                    M.Detalle_Reparacion_Precio_Unitario_Repuesto,
+                    M.Detalle_Reparacion_Cantidad_Repuesto
+                ORDER BY M.Id
+            ) AS ocurrencia
+        FROM gd_esquema.Maestra M
+        INNER JOIN ESTRESHADAS.Reparacion R
+            ON R.nro_reparacion = M.Reparacion_Nro_Reparacion
+        INNER JOIN ESTRESHADAS.Repuesto REPU
+            ON REPU.cod_repuesto = M.Repuesto_Cod_Repuesto
+        WHERE M.Reparacion_Nro_Reparacion IS NOT NULL
+          AND M.Repuesto_Cod_Repuesto IS NOT NULL
+    ), Existentes AS (
+        SELECT id_reparacion, id_repuesto, subtotal, precio_unitario, cantidad, COUNT_BIG(*) AS cantidad_existente
+        FROM ESTRESHADAS.Detalle_Reparacion
+        GROUP BY id_reparacion, id_repuesto, subtotal, precio_unitario, cantidad
+    )
     INSERT INTO ESTRESHADAS.Detalle_Reparacion (id_reparacion, id_repuesto, subtotal, precio_unitario, cantidad)
-    SELECT DISTINCT
-        R.id_reparacion,
-        REPU.id_repuesto,
-        M.Detalle_Reparacion_Subtotal_Repuesto,
-        M.Detalle_Reparacion_Precio_Unitario_Repuesto,
-        M.Detalle_Reparacion_Cantidad_Repuesto
-    FROM gd_esquema.Maestra M
-    INNER JOIN ESTRESHADAS.Reparacion R
-        ON R.nro_reparacion = M.Reparacion_Nro_Reparacion
-    INNER JOIN ESTRESHADAS.Repuesto REPU
-        ON REPU.cod_repuesto = M.Repuesto_Cod_Repuesto
-    WHERE M.Reparacion_Nro_Reparacion IS NOT NULL
-      AND M.Repuesto_Cod_Repuesto IS NOT NULL;
+    SELECT O.id_reparacion, O.id_repuesto, O.subtotal, O.precio_unitario, O.cantidad
+    FROM Origen O
+    LEFT JOIN Existentes E
+        ON E.id_reparacion = O.id_reparacion
+        AND E.id_repuesto = O.id_repuesto
+        AND (E.subtotal = O.subtotal OR (E.subtotal IS NULL AND O.subtotal IS NULL))
+        AND (E.precio_unitario = O.precio_unitario OR (E.precio_unitario IS NULL AND O.precio_unitario IS NULL))
+        AND (E.cantidad = O.cantidad OR (E.cantidad IS NULL AND O.cantidad IS NULL))
+    WHERE O.ocurrencia > ISNULL(E.cantidad_existente, 0);
 END;
 GO
 
@@ -513,27 +580,53 @@ BEGIN
         ON P.cuit_proveedor = M.Proveedor_Cuit_Proveedor
     WHERE M.Compra_Nro_Compra IS NOT NULL
       AND M.Empleado_Dni_Empleado IS NOT NULL
-      AND M.Proveedor_Cuit_Proveedor IS NOT NULL;
+      AND M.Proveedor_Cuit_Proveedor IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Compra C_EXISTENTE
+          WHERE C_EXISTENTE.nro_compra = M.Compra_Nro_Compra
+      );
 END;
 GO
 
 CREATE PROCEDURE ESTRESHADAS.migracion_detalle_compra
 AS
 BEGIN
+    ;WITH Origen AS (
+        SELECT
+            C.id_compra,
+            PR.id_producto,
+            M.Detalle_Compra_Precio_Unitario_Prod_Compra AS precio_unitario,
+            M.Detalle_Compra_Cantidad_Prod_Compra AS cantidad,
+            M.Detalle_Compra_Precio_Unitario_Prod_Compra * M.Detalle_Compra_Cantidad_Prod_Compra AS subtotal,
+            ROW_NUMBER() OVER (
+                PARTITION BY C.id_compra, PR.id_producto,
+                    M.Detalle_Compra_Precio_Unitario_Prod_Compra,
+                    M.Detalle_Compra_Cantidad_Prod_Compra
+                ORDER BY M.Id
+            ) AS ocurrencia
+        FROM gd_esquema.Maestra M
+        INNER JOIN ESTRESHADAS.Compra C
+            ON C.nro_compra = M.Compra_Nro_Compra
+        INNER JOIN ESTRESHADAS.Producto PR
+            ON PR.cod_producto = M.Producto_Cod_Producto
+        WHERE M.Compra_Nro_Compra IS NOT NULL
+          AND M.Producto_Cod_Producto IS NOT NULL
+    ), Existentes AS (
+        SELECT id_compra, id_producto, precio_unitario, cant_det_compra, subtotal_det_compra, COUNT_BIG(*) AS cantidad_existente
+        FROM ESTRESHADAS.Detalle_Compra
+        GROUP BY id_compra, id_producto, precio_unitario, cant_det_compra, subtotal_det_compra
+    )
     INSERT INTO ESTRESHADAS.Detalle_Compra (id_compra, id_producto, precio_unitario, cant_det_compra, subtotal_det_compra)
-    SELECT DISTINCT
-        C.id_compra,
-        PR.id_producto,
-        M.Detalle_Compra_Precio_Unitario_Prod_Compra,
-        M.Detalle_Compra_Cantidad_Prod_Compra,
-        M.Detalle_Compra_Precio_Unitario_Prod_Compra * M.Detalle_Compra_Cantidad_Prod_Compra
-    FROM gd_esquema.Maestra M
-    INNER JOIN ESTRESHADAS.Compra C
-        ON C.nro_compra = M.Compra_Nro_Compra
-    INNER JOIN ESTRESHADAS.Producto PR
-        ON PR.cod_producto = M.Producto_Cod_Producto
-    WHERE M.Compra_Nro_Compra IS NOT NULL
-      AND M.Producto_Cod_Producto IS NOT NULL;
+    SELECT O.id_compra, O.id_producto, O.precio_unitario, O.cantidad, O.subtotal
+    FROM Origen O
+    LEFT JOIN Existentes E
+        ON E.id_compra = O.id_compra
+        AND E.id_producto = O.id_producto
+        AND (E.precio_unitario = O.precio_unitario OR (E.precio_unitario IS NULL AND O.precio_unitario IS NULL))
+        AND (E.cant_det_compra = O.cantidad OR (E.cant_det_compra IS NULL AND O.cantidad IS NULL))
+        AND (E.subtotal_det_compra = O.subtotal OR (E.subtotal_det_compra IS NULL AND O.subtotal IS NULL))
+    WHERE O.ocurrencia > ISNULL(E.cantidad_existente, 0);
 END;
 GO
 
@@ -653,29 +746,56 @@ BEGIN
     WHERE M.Venta_Nro_Venta IS NOT NULL
       AND M.Empleado_Dni_Empleado IS NOT NULL
       AND M.Cliente_Dni_Cliente IS NOT NULL
-      AND M.Forma_Pago_Forma_Pago IS NOT NULL;
+      AND M.Forma_Pago_Forma_Pago IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Venta V_EXISTENTE
+          WHERE V_EXISTENTE.nro_venta = M.Venta_Nro_Venta
+      );
 END;
 GO
 
 CREATE PROCEDURE ESTRESHADAS.migracion_det_venta
 AS
 BEGIN
+    ;WITH Origen AS (
+        SELECT
+            V.id_venta,
+            P.id_producto,
+            M.Detalle_Venta_Cantidad_Prod_Venta AS cantidad,
+            M.Detalle_Venta_Precio_Unitario_Prod_Venta AS precio_unitario,
+            M.Detalle_Venta_Subtotal_Prod_Venta AS subtotal,
+            ROW_NUMBER() OVER (
+                PARTITION BY V.id_venta, P.id_producto,
+                    M.Detalle_Venta_Cantidad_Prod_Venta,
+                    M.Detalle_Venta_Precio_Unitario_Prod_Venta,
+                    M.Detalle_Venta_Subtotal_Prod_Venta
+                ORDER BY M.Id
+            ) AS ocurrencia
+        FROM gd_esquema.Maestra M
+        INNER JOIN ESTRESHADAS.venta V
+            ON V.nro_venta = M.Venta_Nro_Venta
+        INNER JOIN ESTRESHADAS.producto P
+            ON P.cod_producto = M.Producto_Cod_Producto
+        WHERE M.Venta_Nro_Venta IS NOT NULL
+          AND M.Producto_Cod_Producto IS NOT NULL
+    ), Existentes AS (
+        SELECT id_venta, id_producto, cant_det_venta, precio_unitario, subtot_det_venta, COUNT_BIG(*) AS cantidad_existente
+        FROM ESTRESHADAS.Detalle_Venta
+        GROUP BY id_venta, id_producto, cant_det_venta, precio_unitario, subtot_det_venta
+    )
     INSERT INTO ESTRESHADAS.detalle_venta(
         id_venta, id_producto, cant_det_venta, precio_unitario, subtot_det_venta
     )
-    SELECT DISTINCT
-        V.id_venta,
-        P.id_producto,
-        M.Detalle_Venta_Cantidad_Prod_Venta,
-        M.Detalle_Venta_Precio_Unitario_Prod_Venta,
-        M.Detalle_Venta_Subtotal_Prod_Venta
-    FROM gd_esquema.Maestra M
-    INNER JOIN ESTRESHADAS.venta V
-        ON V.nro_venta = M.Venta_Nro_Venta
-    INNER JOIN ESTRESHADAS.producto P
-        ON P.cod_producto = M.Producto_Cod_Producto
-    WHERE M.Venta_Nro_Venta IS NOT NULL
-      AND M.Producto_Cod_Producto IS NOT NULL;
+    SELECT O.id_venta, O.id_producto, O.cantidad, O.precio_unitario, O.subtotal
+    FROM Origen O
+    LEFT JOIN Existentes E
+        ON E.id_venta = O.id_venta
+        AND E.id_producto = O.id_producto
+        AND (E.cant_det_venta = O.cantidad OR (E.cant_det_venta IS NULL AND O.cantidad IS NULL))
+        AND (E.precio_unitario = O.precio_unitario OR (E.precio_unitario IS NULL AND O.precio_unitario IS NULL))
+        AND (E.subtot_det_venta = O.subtotal OR (E.subtot_det_venta IS NULL AND O.subtotal IS NULL))
+    WHERE O.ocurrencia > ISNULL(E.cantidad_existente, 0);
 END;
 GO
 
@@ -824,7 +944,12 @@ BEGIN
       AND M.Cliente_Dni_Cliente IS NOT NULL
       AND M.Bicicleta_Alquiler_Nro_Serie_Bici_Alquiler IS NOT NULL
       AND M.Forma_Pago_Forma_Pago IS NOT NULL
-      AND M.Estado_Alquiler_Estado_Alquiler IS NOT NULL;
+      AND M.Estado_Alquiler_Estado_Alquiler IS NOT NULL
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ESTRESHADAS.Alquiler A_EXISTENTE
+          WHERE A_EXISTENTE.nro_alquiler = M.Alquiler_Nro_Alquiler
+      );
 END;
 GO
 
